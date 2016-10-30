@@ -20,7 +20,35 @@ int main(int agrc, char * agrv[])
 
   pid_t pid; // Process Identifier
 
-  pid = fork(); // fork another process
+  const char *name = "shm_obj";  /*name for shared memory object */
+
+  const int size = 4096; /* size for shared memory object */
+  
+ 
+  /* CREATE/OPEN POSIX shared memory object */
+ 
+  int fd = shm_open(name, O_CREAT| O_RDWR, S_IRUSR | S_IWUSR);
+   if(fd == -1){
+	printf("** share memory failed **\n"); 	exit(-1);
+  }
+
+  /* set the memory object's size */
+  
+  int r = ftruncate(fd, size);
+   if(r != 0){
+	printf("** ftruncate error **\n");  exit(-1);
+  }
+  
+  /* Map the memory object */
+  
+  void *ptr = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+   if( ptr == MAP_FAILED){
+	printf("** Map Error **\n");  exit(-1);
+  }
+ 
+  close(fd);
+ 
+
 
   /**
    *	Parent Process return 1	(init Process)
@@ -28,10 +56,9 @@ int main(int agrc, char * agrv[])
    *
    * **/
 
-  const char *name = "3_22";  /*name for shared memory object */
+  pid = fork(); // fork another process
   
-  const int size = 4096; /* size for shared memory object */
-  
+  /* create the child process and wait for it to terminate  */
 
   if(pid<0){ // error occurred
   	
@@ -46,66 +73,54 @@ int main(int agrc, char * agrv[])
 	/* Implement the Algorithm */	
 	int n = atoi(agrv[1]);	//printf("%d",n);
 	int shrd_resc[size] , index = 0;
-	void *ptr;	
 
 	while(n!=1){  /* if n is even , n/2, else if odd 3*n+1 */
 	    shrd_resc[index++] = n;
 	    n = (n%2) ? (3*n+1) : n/2 ;
 	} shrd_resc[index++] = 1;
   
-	int fd = shm_open(name, O_RDWR|O_CREAT, 6666);  /* create/open POSIX shared memory object */
 				  
-	/* set the memory object's size */
-			
-	ftruncate(fd, size);  
-
- 	/* Map the memory object */
-        ptr =  mmap(0, size, PROT_WRITE,
-			 MAP_SHARED, fd, 0);
-	
 	//printf("** Child is dealing with the algorithm. **\n");
 
 	int i;
 	
 	for(i = 0; i<index; i++){
-		sprintf(ptr, "%d", shrd_resc[i]);
+		sprintf((char *)ptr, "%d", shrd_resc[i]);
 	 	/* Since we use the type 'char' to store, and we assume the number should not exceed 10 digit */
 		ptr += 10*sizeof(char);
 	}
 	
 	printf("** Child ends **\n");
+
+	exit(0);
   }
 
   else{ // parent process
   
 	wait(NULL); /* wait for the child */
 
-  	int fd = shm_open(name, O_RDONLY, 6666); /* 6666 for port number*/
-
-	if(fd == -1){ 
-		printf("** shared memory failed. **\n");
-		exit(-1);
-	}
-
-	void *ptr;	
-	ptr = mmap(0, size, PROT_READ, MAP_SHARED, fd, 0);
-
-	// printf("Parent is waiting for child to complete ... \n");
-	
 	/* read from the shared memory object */	
 
-	char *output; 
+	char *string = (char *)ptr;
+	printf("%s", string);
 
-	output = (char *)ptr;
-	printf("%s", output);
+	/* output the contents of shared memory */
 
-	while(!(strcmp(output, "1")==0)){
+	while(!(strcmp(string, "1")==0)){
+
 		ptr += 10*sizeof(char);
-		output = (char *) ptr;
-		printf(", %s", output);
+		string = (char *) ptr;
+		printf(", %s", string);
 	}
 
 	printf("\n** Parent ends **\n");
+
+	/* Removed the shared-memory object */
+	r = shm_unlink(name);
+	if(r != 0){
+		printf("** shm_unlink Error **\n");
+		exit(-1);
+	}
   	exit(0);
   }
 
