@@ -28,7 +28,7 @@ int main(int agrc, char * agrv[])
    *
    * **/
 
-  const char *name = "shm_obj";  /*name for shared memory object */
+  const char *name = "3_22";  /*name for shared memory object */
   
   const int size = 4096; /* size for shared memory object */
   
