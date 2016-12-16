@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h> // Unix Standard
+#include <sys/wait.h>
 
 int main(int agrc, char * agrv[])
 {
@@ -36,12 +37,12 @@ int main(int agrc, char * agrv[])
 	    n = (n%2) ? (3*n+1) : n/2 ;
 	    printf(", %d",n); 
 	} printf("\n");
-  
+  	printf("** Child ends **\n");
   }
 
   else{ // parent process
   	wait(NULL); 
-	printf("** Child Complete **\n");
+	printf("** Parent ends **\n");
   	exit(0);
   }
 
